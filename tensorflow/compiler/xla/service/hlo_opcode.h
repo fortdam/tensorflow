@@ -30,8 +30,9 @@ namespace xla {
 enum class HloOpcode {
   kAbs,
   kAdd,
-  kBatchNormTraining,
   kBatchNormGrad,
+  kBatchNormInference,
+  kBatchNormTraining,
   kBitcast,
   kBroadcast,
   kCall,
@@ -83,6 +84,7 @@ enum class HloOpcode {
   kReshape,
   kReverse,
   kRng,
+  kRoundNearestAfz,
   kSelect,
   kSelectAndScatter,
   kSend,
@@ -111,6 +113,11 @@ bool HloOpcodeIsComparison(HloOpcode opcode);
 
 // Returns true iff the given opcode has variadic operands.
 bool HloOpcodeIsVariadic(HloOpcode opcode);
+
+// Returns the number of HloOpcode values.
+inline const uint32_t HloOpcodeCount() {
+  return static_cast<uint32_t>(HloOpcode::kWhile) + 1;
+}
 
 }  // namespace xla
 

@@ -38,6 +38,10 @@ LogUniformCandidateSampler
 ThreadUnsafeUnigramCandidateSampler
 UniformCandidateSampler
 
+# checkpoint_ops
+GenerateVocabRemapping
+LoadAndRemapMatrix
+
 # control_flow_ops
 Switch
 Merge
@@ -158,13 +162,16 @@ TensorArrayWriteV3
 SymbolicGradient
 
 # image_ops
+AdjustContrastv2
+NonMaxSuppression
+NonMaxSuppressionV2
 RandomCrop
 ResizeBilinearGrad
+ResizeBicubicGrad
 ResizeNearestNeighborGrad
-AdjustContrastv2
-ScaleImageGrad
 SampleDistortedBoundingBox
 SampleDistortedBoundingBoxV2
+ScaleImageGrad
 
 # io_ops
 FixedLengthRecordReader
@@ -200,6 +207,7 @@ TextLineReaderV2
 TFRecordReaderV2
 WholeFileReaderV2
 LMDBReader
+DecodeCSV
 
 # linalg_ops
 BatchCholesky
@@ -290,6 +298,7 @@ MaxPool3DGradGrad
 ReluGrad
 Relu6Grad
 EluGrad
+SeluGrad
 SoftplusGrad
 SoftsignGrad
 TopK
@@ -299,6 +308,7 @@ BiasAddV1
 Relu6
 AvgPool
 MaxPool
+MaxPoolV2
 Softmax
 LogSoftmax
 FractionalAvgPoolGrad

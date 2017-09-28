@@ -28,7 +28,7 @@ def tf_additional_verbs_deps():
       "//tensorflow:with_verbs_support": [
           "//tensorflow/contrib/verbs:verbs_server_lib",
           "//tensorflow/contrib/verbs:grpc_verbs_client",
-      ],
+      ], 
       "//conditions:default": [],
   })
 
@@ -38,4 +38,18 @@ def tf_additional_mpi_deps():
           "//tensorflow/contrib/mpi:mpi_server_lib",
       ],
       "//conditions:default": [],
+  })
+
+def tf_additional_gdr_deps():
+  return select({
+      "//tensorflow:with_gdr_support": [
+          "//tensorflow/contrib/gdr:gdr_server_lib",
+      ],
+      "//conditions:default": [],
+  })
+
+def if_static(extra_deps, otherwise=[]):
+  return select({
+      "//tensorflow:framework_shared_object": otherwise,
+      "//conditions:default": extra_deps,
   })

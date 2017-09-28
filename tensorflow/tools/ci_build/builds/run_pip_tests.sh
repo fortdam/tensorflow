@@ -109,7 +109,7 @@ bazel clean
 # virtualenv.
 export TF_NEED_GCP=0
 export TF_NEED_HDFS=0
-export TF_ENABLE_XLA=${TF_BUILD_ENABLE_XLA:-0}
+export TF_ENABLE_XLA=0
 
 # Obtain the path to Python binary
 if [[ ${IS_VIRTUALENV} == "1" ]]; then
@@ -120,7 +120,7 @@ else
 fi
 
 export TF_NEED_CUDA=$IS_GPU
-yes "" | ./configure
+${PYTHON_BIN_PATH} configure.py
 
 # Figure out how many concurrent tests we can run and do run the tests.
 BAZEL_PARALLEL_TEST_FLAGS=""

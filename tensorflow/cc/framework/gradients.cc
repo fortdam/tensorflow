@@ -78,6 +78,10 @@ class SymbolicGradientBuilder {
                           const std::vector<Output>& grad_inputs,
                           std::vector<Output>* grad_outputs);
 
+  // Returns a list mapping whether each node in the graph is reachable
+  // from outputs_. Keyed by node id.
+  std::vector<bool> GetReachableNodes();
+
   const Scope& scope_;
   const ops::GradOpRegistry* registry_;
   const std::vector<Output>& outputs_;
@@ -143,10 +147,41 @@ Status SymbolicGradientBuilder::BackpropAlongEdge(const Output& dst_grad,
   return Status::OK();
 }
 
+std::vector<bool> SymbolicGradientBuilder::GetReachableNodes() {
+  std::vector<bool> reachable_nodes(scope_.graph()->num_node_ids(), false);
+  std::deque<Node*> queue;
+  for (const Output& out : outputs_) {
+    if (!reachable_nodes[out.node()->id()]) {
+      queue.push_back(out.node());
+      reachable_nodes[out.node()->id()] = true;
+    }
+  }
+
+  while (!queue.empty()) {
+    Node* n = queue.front();
+    queue.pop_front();
+    for (const Edge* e : n->in_edges()) {
+      if (e->IsControlEdge()) continue;
+      queue.push_back(e->src());
+      reachable_nodes[e->src()->id()] = true;
+    }
+  }
+  return reachable_nodes;
+}
+
 Status SymbolicGradientBuilder::Initialize() {
   if (outputs_.size() != grad_inputs_.size()) {
     return errors::InvalidArgument(
         "Must specify a gradient input for each output.");
+  }
+  std::vector<bool> reachable_nodes = GetReachableNodes();
+  for (const Output& input : inputs_) {
+    if (!reachable_nodes[input.node()->id()]) {
+      return errors::InvalidArgument(
+          "Cannot compute the partial derivative for node '",
+          input.node()->name(),
+          "' as it's unreachable from the output node(s).");
+    }
   }
   grad_outputs_->clear();
   grad_outputs_->resize(inputs_.size());
@@ -188,12 +223,15 @@ Status SymbolicGradientBuilder::Initialize() {
       if (output_nodes_.find(n->id()) == output_nodes_.end()) {
         // Internal node: continue BFS along connected outputs.
         for (const Edge* e : n->out_edges()) {
-          if (e->IsControlEdge()) continue;
-          ++num_expected_backprops;
+          // If a node is not reachable from outputs_,
+          // we don't expect it to receive a backpropagated gradient.
+          // It will not be counted in num_expected_backprops.
+          if (e->IsControlEdge() || !reachable_nodes[e->dst()->id()]) continue;
           if (visited.find(e->dst()) == visited.end()) {
             queue.push_back(e->dst());
             visited.insert(e->dst());
           }
+          ++num_expected_backprops;
         }
       } else {
         // Output node: stop BFS and update `num_expected_backprops` for
@@ -356,7 +394,7 @@ Status SymbolicGradientBuilder::AddGradients() {
   // Check if any input nodes still have pending gradients and have not been
   // processed yet. This happens if not all outputs of a node are in 'inputs_'.
   std::unordered_map<Node*, int> requested_grads;
-  for (Output nout : inputs_) {
+  for (const Output& nout : inputs_) {
     if (pending_[nout.node()->id()] > 0) {
       DCHECK_GT(nout.node()->num_outputs(), 1);
       int idx = input_nodes_[nout];
@@ -365,7 +403,7 @@ Status SymbolicGradientBuilder::AddGradients() {
       ++requested_grads[nout.node()];
     }
   }
-  for (auto& p : requested_grads) {
+  for (const auto& p : requested_grads) {
     int num_requested_inputs = p.first->num_outputs() - pending_[p.first->id()];
     CHECK_EQ(num_requested_inputs, p.second);
   }
